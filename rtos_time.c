@@ -100,6 +100,28 @@ extern void yield_process(int process_status);
 	//while((int)(current_process->return_deadline - time_read_ticks()) > 0);
 //}
 
+//void rtos_delay_ctick(uint32_t n) {
+	//// set return deadline for process
+	//current_process->return_deadline = time_read_ticks() + n;
+	//
+	//// create structure to define when process resumes execution
+	//volatile Process_Wait_Until_Data data = {
+		//.variable = 0,
+		//.value = 0,
+		//.mask = 0,
+		//.condition = Process_Wait_Until_Deadline
+	//};
+	//
+	//// make internal data pointer point to structure
+	//current_process->internal_data = &data;
+	//
+	//yield_process(Process_State_Blocked);
+//}
+
+void rtos_delay_callback() {
+	if ((int)(current_process->return_deadline - time_read_ticks()) <= 0) current_process->status = Process_State_Running;
+}
+
 void rtos_delay_ctick(uint32_t n) {
 	// set return deadline for process
 	current_process->return_deadline = time_read_ticks() + n;
@@ -109,7 +131,8 @@ void rtos_delay_ctick(uint32_t n) {
 		.variable = 0,
 		.value = 0,
 		.mask = 0,
-		.condition = Process_Wait_Until_Deadline
+		.condition = Process_Wait_Until_None,
+		.callback = rtos_delay_callback
 	};
 	
 	// make internal data pointer point to structure

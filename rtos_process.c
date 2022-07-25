@@ -125,18 +125,20 @@ Process* next_process() {
 	//Process* proc = process_queue[process_queue_head];
 	// find first unblocked process, or unblock process if possible
 	int queue_pointer = process_queue_head;
-	Process* proc = 0;
+	//Process* proc = 0;
 	int blocked_count = 0;
 	
 	for (; blocked_count < process_count; ++blocked_count) {
-		proc = process_queue[queue_pointer];
+		current_process = process_queue[queue_pointer];
 		// break if not blocked
-		if (proc->status != Process_State_Blocked) break;
+		if (current_process->status != Process_State_Blocked) break;
 		else {
 			// attempt to unblock process
-			volatile Process_Wait_Until_Data* data = proc->internal_data;
+			volatile Process_Wait_Until_Data* data = current_process->internal_data;
 			volatile bool unblocked = false;
 			uint32_t variable;
+			// call callback function if assigned
+			if (data->callback) data->callback();
 			// get variable, avoiding accessing protected portions of memory
 			if (data->mask) {
 				if ((data->mask & U8_MASK) == data->mask) variable = *((uint8_t*)(data->variable));
@@ -164,16 +166,18 @@ Process* next_process() {
 				case Process_Wait_Until_LEqual:
 				if (variable <= data->value) unblocked = true;
 				break;
-				case Process_Wait_Until_Deadline:
-				if ((int)(proc->return_deadline - time_read_ticks()) <= 0) unblocked = true;
+				case Process_Wait_Until_None:
 				break;
+				//case Process_Wait_Until_Deadline:
+				//if ((int)(current_process->return_deadline - time_read_ticks()) <= 0) unblocked = true;
+				//break;
 				default:
 				return 0; // error
 				break;
 			}
 			// if unblocked break
 			if (unblocked) {
-				proc->status = Process_State_Running;
+				current_process->status = Process_State_Running;
 				break;
 			}
 		}
@@ -188,7 +192,7 @@ Process* next_process() {
 	//if (blocked_count == process_count) return 0;	
 	
 	// run next unblocked process (if there are unblocked processes
-	if (blocked_count != process_count) switch_process(proc);
+	if (blocked_count != process_count) switch_process(current_process);
 	
 	// move blocked processes up queue
 	for (; blocked_count > 0; --blocked_count) {
@@ -200,11 +204,11 @@ Process* next_process() {
 	--process_count;
 	++process_queue_head;
 	process_queue_head %= RTOS_MAX_PROCESS_COUNT;
-	return proc;
+	return current_process;
 }
 
 
-void yield_process(int process_status) {
+__attribute__((optimize("-Og"))) void yield_process(int process_status) {
 	// set status of process
 	current_process->status = process_status;
 	
@@ -220,7 +224,7 @@ void yield_process(int process_status) {
 	// asm macro
 	READ_PROGRAM_COUNTER(pc);
 	// save program counter for return (accounting for pipeline)
-	current_process->program_counter = pc + 4;
+	current_process->program_counter = pc + 4; // 4
 	
 	// branch (return) to process caller
 	POP_PROGRAM_COUNTER();
@@ -280,7 +284,27 @@ void wait_until(void* variable, uint32_t value, uint32_t mask, Process_Wait_Unti
 		.variable = variable,
 		.value = value,
 		.mask = mask,
-		.condition = condition
+		.condition = condition,
+		.callback = 0
+	};
+	
+	// make internal data pointer point to structure
+	current_process->internal_data = &data;
+	
+	yield_process(Process_State_Blocked);
+}
+
+void wait_until_callback(void* variable, uint32_t value, uint32_t mask, Process_Wait_Until_Condition condition, void (*callback)(void)) {
+	// set return deadline to now (as soon as possible)
+	current_process->return_deadline = time_read_ticks();
+	
+	// create structure to define when process resumes execution
+	volatile Process_Wait_Until_Data data = {
+		.variable = variable,
+		.value = value,
+		.mask = mask,
+		.condition = condition,
+		.callback = callback
 	};
 	
 	// make internal data pointer point to structure

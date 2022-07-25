@@ -27,7 +27,8 @@ typedef enum {
 	Process_Wait_Until_GEqual,
 	Process_Wait_Until_Less,
 	Process_Wait_Until_LEqual,
-	Process_Wait_Until_Deadline
+	//Process_Wait_Until_Deadline
+	Process_Wait_Until_None
 } Process_Wait_Until_Condition;
 
 typedef struct {
@@ -38,7 +39,11 @@ typedef struct {
 	uint32_t value;
 	
 	// mask placed over variable for comparison
+	// if mask is zero variable is not checked
 	uint32_t mask;
+	
+	// callback that is executed before checking the variable
+	void (*callback)(void);
 	
 	// condition to check
 	Process_Wait_Until_Condition condition;
@@ -121,6 +126,12 @@ bool dispatch_process(Process* process);
 // Function: block the current thread until the given condition is met
 // Thread safety: thread safe for any process
 void wait_until(void* variable, uint32_t value, uint32_t mask, Process_Wait_Until_Condition condition);
+
+//----------wait_until : function----------//
+// Function: block the current thread until the given condition is met.
+// Before the condition is checked, the callback function is run.
+// Thread safety: thread safe for any process
+void wait_until_callback(void* variable, uint32_t value, uint32_t mask, Process_Wait_Until_Condition condition, void (*callback)(void));
 
 //----------join_process : macro----------//
 // Function: Shorthand for the function wait_until.
