@@ -1,0 +1,15 @@
+#ifndef UTIL_H
+#define UTIL_H
+
+#define SPI_SERCOM SERCOM1
+#define SPI_DMA_TX_CHANNEL 0
+#define SPI_DMA_RX_CHANNEL 1
+#define SPI_DMA_TX_TRIGGER SERCOM1_DMAC_ID_TX
+#define SPI_DMA_RX_TRIGGER SERCOM1_DMAC_ID_RX
+#define SPI_DMA_PRIOTITY 1
+
+typedef enum {
+	SPI_DEVICE_EEPROM_CAT25
+} SPI_Device;
+
+#endif

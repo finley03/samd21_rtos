@@ -1,8 +1,8 @@
 #include "dma.h"
 
-bool dma_set_channel(int channel) {
-	if (channel >= 0 && channel < 12) {
-		DMAC->CHID.reg = (uint8_t)channel;
+bool dma_set_channel(uint8_t channel) {
+	if (channel < 12) {
+		DMAC->CHID.reg = channel;
 		return true;
 	}
 	else return false;
@@ -24,7 +24,7 @@ void dma_init() {
 }
 
 bool dma_create_descriptor(DMA_DESCRIPTOR_Type* descriptor, bool incsource, bool incdest,
-	uint32_t beatsize, uint16_t count, void* src, void* dst, void* nextdescriptor) {
+	uint8_t beatsize, uint16_t count, void* src, void* dst, void* nextdescriptor) {
 		
 	// check beatsize is in range
 	if (beatsize > 0x2) return false;
@@ -32,7 +32,7 @@ bool dma_create_descriptor(DMA_DESCRIPTOR_Type* descriptor, bool incsource, bool
 	// set BTCTRL register	
 	descriptor->BTCTRL.reg = DMAC_BTCTRL_STEPSIZE_X1 | DMAC_BTCTRL_STEPSEL_DST | 
 		((incsource) ? DMAC_BTCTRL_SRCINC : 0) | ((incdest) ? DMAC_BTCTRL_DSTINC : 0) |
-		(beatsize << DMAC_BTCTRL_BEATSIZE_Pos) | DMAC_BTCTRL_BLOCKACT_NOACT |
+		DMAC_BTCTRL_BEATSIZE((uint32_t)beatsize) | DMAC_BTCTRL_BLOCKACT_NOACT |
 		DMAC_BTCTRL_EVOSEL_DISABLE | DMAC_BTCTRL_VALID;
 	
 	// set number of beats in transfer
@@ -48,18 +48,18 @@ bool dma_create_descriptor(DMA_DESCRIPTOR_Type* descriptor, bool incsource, bool
 	return true;
 }
 
-bool dma_init_channel(int channel, uint32_t trigact, uint32_t trigsrc, int priority) {
+bool dma_init_channel(uint8_t channel, uint8_t trigact, uint8_t trigsrc, uint8_t priority) {
 	if (!dma_set_channel(channel)) return false;
-	if (priority < 0 || priority >= 4) return false;
+	if (priority > 3) return false;
 	if (trigact > 3 || trigact == 1) return false;
 	
-	DMAC->CHCTRLB.reg = (trigact << DMAC_CHCTRLB_TRIGACT_Pos) | DMAC_CHCTRLB_TRIGSRC(trigsrc) |
+	DMAC->CHCTRLB.reg = DMAC_CHCTRLB_TRIGACT((uint32_t)trigact) | DMAC_CHCTRLB_TRIGSRC((uint32_t)trigsrc) |
 		((uint32_t)priority << DMAC_CHCTRLB_LVL_Pos);
 		
 	return true;
 }
 
-bool dma_enable_channel(int channel) {
+bool dma_enable_channel(uint8_t channel) {
 	if (!dma_set_channel(channel)) return false;
 	
 	// clear interrupt
@@ -69,7 +69,7 @@ bool dma_enable_channel(int channel) {
 	return true;
 }
 
-bool dma_disable_channel(int channel) {
+bool dma_disable_channel(uint8_t channel) {
 	if (!dma_set_channel(channel)) return false;
 	
 	// disable channel
@@ -77,7 +77,7 @@ bool dma_disable_channel(int channel) {
 	return true;
 }
 
-bool dma_suspend_channel(int channel) {
+bool dma_suspend_channel(uint8_t channel) {
 	if (!dma_set_channel(channel)) return false;
 	
 	// suspend channel
@@ -85,7 +85,7 @@ bool dma_suspend_channel(int channel) {
 	return true;
 }
 
-bool dma_resume_channel(int channel) {
+bool dma_resume_channel(uint8_t channel) {
 	if (!dma_set_channel(channel)) return false;
 	
 	// resume channel
@@ -93,15 +93,15 @@ bool dma_resume_channel(int channel) {
 	return true;
 }
 
-bool dma_trigger_channel(int channel) {
-	if (channel >= 0 && channel < 12) {
+bool dma_trigger_channel(uint8_t channel) {
+	if (channel < 12) {
 		DMAC->SWTRIGCTRL.reg = 1 << channel;
 		return true;
 	}
 	else return false;
 }
 
-bool dma_transfer_complete(int channel) {
+bool dma_transfer_complete(uint8_t channel) {
 	if (!dma_set_channel(channel)) return false;
 	
 	// check if transfer is complete

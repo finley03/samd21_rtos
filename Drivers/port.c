@@ -1,41 +1,41 @@
 #include "port.h"
 #include "samd21.h"
 
-void port_set_output(int port, uint32_t pinmask) {
+void port_set_output(uint8_t port, uint32_t pinmask) {
 	PORT->Group[port].DIRSET.reg = pinmask;
 }
 
-void port_set_input(int port, uint32_t pinmask) {
+void port_set_input(uint8_t port, uint32_t pinmask) {
 	PORT->Group[port].DIRCLR.reg = pinmask;
 }
 
-void port_enable_input(int port, uint32_t pinmask) {
+void port_enable_input(uint8_t port, uint32_t pinmask) {
 	for (int i = 0; i < 32; ++i) {
 		if ((1 << i) & pinmask) PORT->Group[port].PINCFG[i].bit.INEN = 1;
 	}
 }
 
-void port_disable_input(int port, uint32_t pinmask) {
+void port_disable_input(uint8_t port, uint32_t pinmask) {
 	for (int i = 0; i < 32; ++i) {
 		if ((1 << i) & pinmask) PORT->Group[port].PINCFG[i].bit.INEN = 0;
 	}
 }
 
 
-void port_set(int port, uint32_t pinmask) {
+void port_set(uint8_t port, uint32_t pinmask) {
 	PORT->Group[port].OUTSET.reg = pinmask;
 }
 
-void port_clear(int port, uint32_t pinmask) {
+void port_clear(uint8_t port, uint32_t pinmask) {
 	PORT->Group[port].OUTCLR.reg = pinmask;
 }
 
-void port_toggle(int port, uint32_t pinmask) {
+void port_toggle(uint8_t port, uint32_t pinmask) {
 	PORT->Group[port].OUTTGL.reg = pinmask;
 }
 
 
-void port_wrconfig(int port, uint32_t pmux, uint32_t pinmask) {
+void port_wrconfig(uint8_t port, uint32_t pmux, uint32_t pinmask) {
 	PORT_WRCONFIG_Type wrconfig = {
 		// enable writing to pincfg
 		.bit.WRPINCFG = 1,

@@ -40,3 +40,8 @@ uint8_t spi_command(Sercom* sercom, uint8_t data) {
 	// read buffer
 	return sercom->SPI.DATA.reg;
 }
+
+void spi_flush(Sercom* sercom) {
+	// while there is unread data touch the data register
+	while (sercom->SPI.INTFLAG.bit.RXC) sercom->SPI.DATA.reg;
+}

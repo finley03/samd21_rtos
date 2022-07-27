@@ -139,6 +139,8 @@ Process* next_process() {
 			uint32_t variable;
 			// call callback function if assigned
 			if (data->callback) data->callback();
+			// check if unblocked by callback
+			if (current_process->status == Process_State_Running) break;
 			// get variable, avoiding accessing protected portions of memory
 			if (data->mask) {
 				if ((data->mask & U8_MASK) == data->mask) variable = *((uint8_t*)(data->variable));
@@ -188,10 +190,7 @@ Process* next_process() {
 		queue_pointer %= RTOS_MAX_PROCESS_COUNT;
 	}
 	
-	//// all processes are blocked, error has occured
-	//if (blocked_count == process_count) return 0;	
-	
-	// run next unblocked process (if there are unblocked processes
+	// run next unblocked process (if there are unblocked processes)
 	if (blocked_count != process_count) switch_process(current_process);
 	
 	// move blocked processes up queue

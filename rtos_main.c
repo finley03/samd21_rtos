@@ -20,7 +20,7 @@ int rtos_main(void) {
 	rtos_init();
 	
 	mainproc = &_mainproc;
-	init_process(mainproc, MAINFUNC, 0x400, 0x200);
+	init_process(mainproc, MAINFUNC, RTOS_RAM_ALLOC, MAIN_RAM_ALLOC);
 	#if defined(RTOS_PREEMPT) && defined(MAIN_PREEMPT)
 	mainproc->enable_preempt = true;
 	#endif

@@ -6,8 +6,20 @@
 
 //----------SETTINGS----------//
 
+// RTOS_MAX_PROCESS_COUNT - maximum number of processes the RTOS needs
+// to be able to handle. Don't set to an arbitrarily high value, each
+// extra process supported consumes an extra 4 bytes of ram.
+#define RTOS_MAX_PROCESS_COUNT 16
+
 // define the main function
 #define MAINFUNC main
+
+// ram allocated to the OS
+// remember any callbacks must fit in this space
+#define RTOS_RAM_ALLOC 0x200
+
+// ram allocated to the main function
+#define MAIN_RAM_ALLOC 0x200
 
 // enable preemptive multitasking
 #define RTOS_PREEMPT
@@ -54,11 +66,6 @@
 // constant values to be used by the OS
 
 // MANDATORY VALUES
-
-// RTOS_MAX_PROCESS_COUNT - maximum number of processes the RTOS needs
-// to be able to handle. Don't set to an arbitrarily high value, each
-// extra process supported consumes an extra 4 bytes of ram.
-#define RTOS_MAX_PROCESS_COUNT 16
 
 // TIME_S_MULT - multiplier to convert ticks to seconds
 #define TIME_S_MULT TIMER_S_MULTIPLIER

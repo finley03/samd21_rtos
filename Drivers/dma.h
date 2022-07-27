@@ -33,9 +33,10 @@ typedef struct __attribute__((aligned(16))) {
 	uint32_t DESCADDR;
 } DMA_DESCRIPTOR_Type;
 
-volatile DMA_DESCRIPTOR_Type dma_descriptor[DMA_CHANNELS] __attribute__ ((aligned (8)));
+DMA_DESCRIPTOR_Type dma_descriptor[DMA_CHANNELS] __attribute__ ((aligned (8)));
 DMA_DESCRIPTOR_Type dma_descriptor_writeback[DMA_CHANNELS] __attribute__ ((aligned (8)));
 
+bool dma_set_channel(uint8_t channel);
 void dma_init();
 
 #define DMA_BEATSIZE_BYTE DMAC_BTCTRL_BEATSIZE_BYTE_Val
@@ -44,18 +45,18 @@ void dma_init();
 #define DMA_NEXTDESCRIPTOR_NONE 0
 
 bool dma_create_descriptor(DMA_DESCRIPTOR_Type* descriptor, bool incsource, bool incdest,
-	uint32_t beatsize, uint16_t count, void* src, void* dst, void* nextdescriptor);
+	uint8_t beatsize, uint16_t count, void* src, void* dst, void* nextdescriptor);
 	
 #define DMA_TRIGACT_BLOCK DMAC_CHCTRLB_TRIGACT_BLOCK_Val
 #define DMA_TRIGACT_BEAT DMAC_CHCTRLB_TRIGACT_BEAT_Val
 #define DMA_TRIGACT_TRANSACTION DMAC_CHCTRLB_TRIGACT_TRANSACTION_Val
 	
-bool dma_init_channel(int channel, uint32_t trigact, uint32_t trigsrc, int priority);
-bool dma_enable_channel(int channel);
-bool dma_disable_channel(int channel);
-bool dma_suspend_channel(int channel);
-bool dma_resume_channel(int channel);
-bool dma_trigger_channel(int channel);
-bool dma_transfer_complete(int channel);
+bool dma_init_channel(uint8_t channel, uint8_t trigact, uint8_t trigsrc, uint8_t priority);
+bool dma_enable_channel(uint8_t channel);
+bool dma_disable_channel(uint8_t channel);
+bool dma_suspend_channel(uint8_t channel);
+bool dma_resume_channel(uint8_t channel);
+bool dma_trigger_channel(uint8_t channel);
+bool dma_transfer_complete(uint8_t channel);
 
 #endif

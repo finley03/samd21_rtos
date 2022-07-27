@@ -18,15 +18,20 @@
 #define PORT_PMUX_H 0x7
 #define PORT_PMUX_I 0x8
 
-void port_set_output(int port, uint32_t pinmask);
-void port_set_input(int port, uint32_t pinmask);
-void port_enable_input(int port, uint32_t pinmask);
-void port_disable_input(int port, uint32_t pinmask);
+typedef struct __attribute__((packed)) {
+	uint32_t pin;
+	uint8_t port;
+} PIN;
 
-void port_set(int port, uint32_t pinmask);
-void port_clear(int port, uint32_t pinmask);
-void port_toggle(int port, uint32_t pinmask);
+void port_set_output(uint8_t port, uint32_t pinmask);
+void port_set_input(uint8_t port, uint32_t pinmask);
+void port_enable_input(uint8_t port, uint32_t pinmask);
+void port_disable_input(uint8_t port, uint32_t pinmask);
 
-void port_wrconfig(int port, uint32_t pmux, uint32_t pinmask);
+void port_set(uint8_t port, uint32_t pinmask);
+void port_clear(uint8_t port, uint32_t pinmask);
+void port_toggle(uint8_t port, uint32_t pinmask);
+
+void port_wrconfig(uint8_t port, uint32_t pmux, uint32_t pinmask);
 
 #endif
