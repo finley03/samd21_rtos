@@ -17,7 +17,7 @@ void set_clock_48m() {
 
 	// configure GCLK1
 	// set divide to 1 (no division)
-	GCLK->GENDIV.reg = GCLK_GENDIV_ID(0) | GCLK_GENDIV_DIV(0);
+	GCLK->GENDIV.reg = GCLK_GENDIV_ID(1) | GCLK_GENDIV_DIV(1);
 
 	// set GCLK1 to use external 32k oscillator
 	GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(1) | GCLK_GENCTRL_SRC_XOSC32K | GCLK_GENCTRL_IDC | GCLK_GENCTRL_GENEN;
@@ -65,7 +65,8 @@ void set_clock_48m() {
 }
 
 
-/*__attribute__((section(".ramfunc"))) */void delay_8c(uint32_t n) {
+//__attribute__((section(".ramfunc")))
+void delay_8c(uint32_t n) {
 	__asm (
 	"loop:				\n" // loop for delay loop
 	"	sub r0, r0, #1	\n" // n is loaded into r0, so each loop, subtract 1

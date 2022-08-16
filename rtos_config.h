@@ -16,10 +16,10 @@
 
 // ram allocated to the OS
 // remember any callbacks must fit in this space
-#define RTOS_RAM_ALLOC 0x200
+#define RTOS_RAM_ALLOC 0x400
 
 // ram allocated to the main function
-#define MAIN_RAM_ALLOC 0x200
+#define MAIN_RAM_ALLOC 0x400
 
 // enable preemptive multitasking
 #define RTOS_PREEMPT

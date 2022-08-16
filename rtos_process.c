@@ -17,7 +17,7 @@ void init_process(Process* process, void (*procFunction)(void), uint32_t stack_p
 	process->program_counter = (uint32_t)procFunction - 1;
 	process->stack_pointer = process->stack_base;
 	process->procFunction = procFunction;
-	process->return_deadline = 0;
+	process->return_deadline = time_read_ticks();
 	process->status = Process_State_Ready;
 	#ifdef RTOS_PREEMPT
 	process->enable_preempt = false;
@@ -27,7 +27,7 @@ void init_process(Process* process, void (*procFunction)(void), uint32_t stack_p
 void reset_process(Process* process) {
 	process->stack_pointer = process->stack_base;
 	process->program_counter = (uint32_t)process->procFunction - 1;
-	process->return_deadline = 0;
+	process->return_deadline = time_read_ticks();
 	process->status = Process_State_Ready;
 }
 
@@ -77,6 +77,8 @@ void init_process_queue() {
 }
 
 bool dispatch_process(Process* process) {
+	__disable_irq();
+	
 	// check process is not finished
 	if (process->status == Process_State_Done) {
 		return false;
@@ -118,10 +120,13 @@ bool dispatch_process(Process* process) {
 	++process_queue_tail;
 	process_queue_tail %= RTOS_MAX_PROCESS_COUNT;
 	
+	__enable_irq();
+	
 	return true;
 }
 
 Process* next_process() {
+	__disable_irq();
 	//Process* proc = process_queue[process_queue_head];
 	// find first unblocked process, or unblock process if possible
 	int queue_pointer = process_queue_head;
@@ -170,9 +175,6 @@ Process* next_process() {
 				break;
 				case Process_Wait_Until_None:
 				break;
-				//case Process_Wait_Until_Deadline:
-				//if ((int)(current_process->return_deadline - time_read_ticks()) <= 0) unblocked = true;
-				//break;
 				default:
 				return 0; // error
 				break;
@@ -190,19 +192,24 @@ Process* next_process() {
 		queue_pointer %= RTOS_MAX_PROCESS_COUNT;
 	}
 	
-	// run next unblocked process (if there are unblocked processes)
-	if (blocked_count != process_count) switch_process(current_process);
-	
+	bool run_process = blocked_count != process_count;
+
 	// move blocked processes up queue
 	for (; blocked_count > 0; --blocked_count) {
 		int source_pointer = (process_queue_head + blocked_count - 1) % RTOS_MAX_PROCESS_COUNT;
 		int destination_pointer = (process_queue_head + blocked_count) % RTOS_MAX_PROCESS_COUNT;
 		process_queue[destination_pointer] = process_queue[source_pointer];
 	}
-	
+
 	--process_count;
 	++process_queue_head;
 	process_queue_head %= RTOS_MAX_PROCESS_COUNT;
+	
+	__enable_irq();
+
+	// run next unblocked process (if there are unblocked processes)
+	if (run_process) switch_process(current_process);
+	
 	return current_process;
 }
 
