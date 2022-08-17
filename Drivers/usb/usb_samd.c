@@ -291,7 +291,7 @@ void usb_handle_function() {
 
 	usb_cb_completion();
 	
-usb_handle_function_end:
+	usb_handle_function_end:
 	NVIC_EnableIRQ(USB_IRQn);
 }
 

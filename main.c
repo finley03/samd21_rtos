@@ -15,13 +15,6 @@
 #include "i2c.h"
 #include "pwm.h"
 
-#define LED_0 PORT_PA06
-#define LED_1 PORT_PA07
-#define LED_2 PORT_PA08
-#define LED_3 PORT_PA09
-#define LED_4 PORT_PA10
-#define LED_5 PORT_PA11
-
 COM_Process spiproc;
 
 bool interrupted;
@@ -30,10 +23,12 @@ extern void SOS();
 void blink_led0();
 void spi_process_exec_function(COM_Process_Transaction_Request* request, void* port_descriptor);
 
+void usb_proc_loop();
 extern void usb_handle_function();
 
-Process _usbproc;
-Process* usbproc;
+Process usbproc;
+
+void led_blinker();
 
 int main() {
 	//port_set_output(PORT_PORTA, LED_0 | LED_1);
@@ -105,22 +100,20 @@ int main() {
 		//
 	//}
 	
-	// steal control from here on from RTOS
-	
 	NVIC_DisableIRQ(USB_IRQn);
 	port_wrconfig(PORT_PORTA, PORT_PMUX_G, PORT_PA24 | PORT_PA25);
 	usb_init();
 	usb_attach();
 	
-	usbproc = &_usbproc;
-	init_process(usbproc, usb_handle_function, 0x800, 0x200);
+	//usbproc = &_usbproc;
+	init_process(&usbproc, usb_proc_loop, 0x800, 0x200);
+	dispatch_process(&usbproc);
 	NVIC_EnableIRQ(USB_IRQn);
 	
 	
 	port_wrconfig(PORT_PORTA, PORT_PMUX_C, PORT_PA08 | PORT_PA09);
 	i2c_init(SERCOM0);
 	rtos_delay_ms(100);
-	//i2c_send_command(SERCOM0, 0x77, 0x1E);
 	uint8_t command = 0x1E;
 	// reset
 	i2c_send_data(SERCOM0, 0x77, &command, 1);
@@ -128,10 +121,17 @@ int main() {
 	// read prom
 	command = 0b10100110;
 	i2c_send_data(SERCOM0, 0x77, &command, 1);
-	//rtos_delay_ms(2);
-	delay_ms(2);
+	rtos_delay_ms(2);
+	//delay_ms(2);
 	uint8_t data[2];
 	i2c_receive_data(SERCOM0, 0x77, data, 2);
+	
+	
+	Process blinker;
+	init_process(&blinker, led_blinker, 0xA00, 0x100);
+	blinker.enable_preempt = true;
+	dispatch_process(&blinker);
+	
 	
 	
 	while(1) {
@@ -142,11 +142,26 @@ int main() {
 	return 0;
 }
 
+bool usb_interrupt;
+
+void usb_proc_loop() {
+	usb_interrupt = false;
+	
+	// contained in loop
+	while (1) {
+		wait_until(&usb_interrupt, true, BOOL_MASK, Process_Wait_Until_Equal);
+		usb_interrupt = false;
+		
+		usb_handle_function();
+	}
+}
+
 void USB_Handler() {
 	NVIC_DisableIRQ(USB_IRQn);
 	
-	reset_process(usbproc);
-	dispatch_process(usbproc);
+	usb_interrupt = true;
+	//reset_process(&usbproc);
+	//dispatch_process(&usbproc);
 }
 
 void spi_process_exec_function(COM_Process_Transaction_Request* request, void* port_descriptor) {
@@ -174,18 +189,11 @@ void spi_process_exec_function(COM_Process_Transaction_Request* request, void* p
 	if (markcomplete) request->status = COM_Request_Complete;
 }
 
-//void usb_process() {
-	//rtos_delay_s(2);
-	//
-	//port_set(0, LED_1);
-	//
-	//interrupted = false;
-	//
-	//usb_attach();
-	//
-	//wait_until(&interrupted, true, BOOL_MASK, Process_Wait_Until_Equal);
-	//
-	//port_clear(0, LED_1);
-	//
-	//usb_detatch();
-//}
+void led_blinker() {
+	port_set_output(PORT_PORTA, PORT_PA14);
+	
+	while (1) {
+	delay_ms(500);
+		port_toggle(PORT_PORTA, PORT_PA14);
+	}
+}

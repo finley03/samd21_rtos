@@ -51,7 +51,8 @@ int bytes_sent;
 int bytes_received;
 
 void i2c_send_data(Sercom* sercom, uint8_t device_address, uint8_t* data, int count) {
-	while (status != I2C_Status_Idle);
+	//while (status != I2C_Status_Idle);
+	while (SERCOM0->I2CM.STATUS.bit.BUSSTATE != 0x1);
 	
 	buffer = data;
 	nr_bytes = count;
@@ -59,11 +60,13 @@ void i2c_send_data(Sercom* sercom, uint8_t device_address, uint8_t* data, int co
 	sercom->I2CM.ADDR.bit.ADDR = device_address << 1;
 	while (sercom->I2CM.SYNCBUSY.bit.SYSOP);
 	
-	while (status != I2C_Status_Idle);
+	//while (status != I2C_Status_Idle);
+	while (SERCOM0->I2CM.STATUS.bit.BUSSTATE != 0x1);
 }
 
 void i2c_receive_data(Sercom* sercom, uint8_t device_address, uint8_t* data, int count) {
-	while (status != I2C_Status_Idle);
+	//while (status != I2C_Status_Idle);
+	while (SERCOM0->I2CM.STATUS.bit.BUSSTATE != 0x1);
 	
 	buffer = data;
 	nr_bytes = count;
@@ -71,7 +74,8 @@ void i2c_receive_data(Sercom* sercom, uint8_t device_address, uint8_t* data, int
 	sercom->I2CM.ADDR.bit.ADDR = (device_address << 1) | 0x1;
 	while (sercom->I2CM.SYNCBUSY.bit.SYSOP);
 	
-	while (status != I2C_Status_Idle);
+	//while (status != I2C_Status_Idle);
+	while (SERCOM0->I2CM.STATUS.bit.BUSSTATE != 0x1);
 }
 
 //uint8_t i2c_read_byte(Sercom* sercom, uint8_t device_address, uint8_t address) {

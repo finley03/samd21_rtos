@@ -32,6 +32,8 @@ void reset_process(Process* process) {
 }
 
 void switch_process(Process* process) {
+	__disable_irq();
+	
 	#ifdef RTOS_PREEMPT
 	if (process->enable_preempt) {
 		preempt_set_interrupt_time(time_read_ticks() + RTOS_TICK_TIME * time_ticks_us_mult);
@@ -53,11 +55,16 @@ void switch_process(Process* process) {
 	// set stack pointer to process stack pointer
 	stack_pointer = process->stack_pointer;
 	
+	__enable_irq();
+	
 	// jump to process
 	((void (*)(void))(process->program_counter + 1))();
 	
+	
 	// invalidate all registers
 	DISCARD_REGISTERS;
+	
+	__disable_irq();
 	
 	// restore stack pointer
 	stack_pointer = rtos_stack_pointer;
@@ -67,6 +74,8 @@ void switch_process(Process* process) {
 		preempt_disable_interrupts();
 	}
 	#endif
+	
+	__enable_irq();
 }
 
 
@@ -215,11 +224,13 @@ Process* next_process() {
 
 
 __attribute__((optimize("-Og"))) void yield_process(int process_status) {
+	__disable_irq();
+	
 	// set status of process
 	current_process->status = process_status;
 	
 	// save stack pointer of process
-	current_process->stack_pointer = stack_pointer;
+	current_process->stack_pointer = stack_pointer - 8;
 	
 	// set stack pointer to be above the first address in the stack (link register)
 	stack_pointer = current_process->stack_base - 4;
@@ -238,8 +249,12 @@ __attribute__((optimize("-Og"))) void yield_process(int process_status) {
 	// execution will resume here when control is returned by the OS
 	DISCARD_REGISTERS;
 	
+	stack_pointer += 8;
+	
 	// set ended to true so OS will know if process ends
 	current_process->status = Process_State_Done;
+	
+	__enable_irq();
 }
 
 
