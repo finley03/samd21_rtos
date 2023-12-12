@@ -20,7 +20,7 @@ int rtos_main(void) {
 	rtos_init();
 	
 	mainproc = &_mainproc;
-	init_process(mainproc, MAINFUNC, RTOS_RAM_ALLOC, MAIN_RAM_ALLOC);
+	init_process(mainproc, MAINFUNC, RTOS_STACK_ALLOC, MAIN_STACK_ALLOC);
 	#if defined(RTOS_PREEMPT) && defined(MAIN_PREEMPT)
 	mainproc->enable_preempt = true;
 	#endif
@@ -56,11 +56,6 @@ bool rtos_init() {
 	
 	init_process_queue();
 	
-	//init_timer_interrupt();
-	//timer_set_interrupt_time(time_read_ticks() + time_ticks_s_mult);
-	//timer_clear_interrupt();
-	//timer_enable_interrupt();
-	
 	// initialize preemption
 	#ifdef RTOS_PREEMPT
 	preempt_init_interrupts();
@@ -69,6 +64,7 @@ bool rtos_init() {
 	return true;
 }
 
+#ifdef DEBUG_LED
 void morse(const char* string) {
 	char* c = string;
 	while (*c != '\0') {
@@ -84,9 +80,17 @@ void morse(const char* string) {
 }
 
 void SOS() {
+	__disable_irq();
+	
 	while(1) {
 		morse("...---...");
-		//led_toggle();
 		delay_ms(600);
 	}
 }
+#else
+void SOS() {
+	__disable_irq();
+	
+	while(1);
+}
+#endif

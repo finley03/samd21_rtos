@@ -58,7 +58,7 @@ enum {
 	USB_FEATURE_TestMode = 0x02,
 };
 
-enum {
+typedef enum {
 	USB_DTYPE_Device = 0x01,
 	USB_DTYPE_Configuration = 0x02,
 	USB_DTYPE_String = 0x03,

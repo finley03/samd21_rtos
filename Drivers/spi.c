@@ -2,46 +2,46 @@
 #include "sercom.h"
 #include "time.h"
 
-bool spi_init(Sercom* sercom, uint8_t cpol, uint8_t cpha, uint8_t dipo, uint8_t dopo, uint32_t baud) {
+bool spi_init(sercom_registers_t* sercom, uint8_t cpol, uint8_t cpha, uint8_t dipo, uint8_t dopo, uint32_t baud) {
 	if (!sercom_init(sercom)) return false;
 	
 	// set mode to master
-	sercom->SPI.CTRLA.reg = ((uint32_t)cpol << SERCOM_SPI_CTRLA_CPOL_Pos) | ((uint32_t)cpha << SERCOM_SPI_CTRLA_CPHA_Pos) | 
-		SERCOM_SPI_CTRLA_MODE_SPI_MASTER | ((uint32_t)dipo << SERCOM_SPI_CTRLA_DIPO_Pos) | 
-		((uint32_t)dopo << SERCOM_SPI_CTRLA_DOPO_Pos);
+	sercom->SPIM.SERCOM_CTRLA = ((uint32_t)cpol << SERCOM_SPIM_CTRLA_CPOL_Pos) | ((uint32_t)cpha << SERCOM_SPIM_CTRLA_CPHA_Pos) | 
+		SERCOM_SPIM_CTRLA_MODE_SPI_MASTER | ((uint32_t)dipo << SERCOM_SPIM_CTRLA_DIPO_Pos) | 
+		((uint32_t)dopo << SERCOM_SPIM_CTRLA_DOPO_Pos);
 		
 	// enable rx
-	sercom->SPI.CTRLB.reg = SERCOM_SPI_CTRLB_RXEN;
+	sercom->SPIM.SERCOM_CTRLB = SERCOM_SPIM_CTRLB_RXEN(1);
 	
 	spi_set_baud(sercom, baud);
 	
 	// enable SPI
-	sercom->SPI.CTRLA.bit.ENABLE = 1;
+	sercom->SPIM.SERCOM_CTRLA |= SERCOM_SPIM_CTRLA_ENABLE(1);
 	
 	// wait for sync
-	while (sercom->SPI.SYNCBUSY.bit.ENABLE);
+	while (sercom->SPIM.SERCOM_SYNCBUSY & SERCOM_SPIM_SYNCBUSY_ENABLE_Msk);
 	return true;
 }
 
-bool spi_set_baud(Sercom* sercom, uint32_t baud) {
+bool spi_set_baud(sercom_registers_t* sercom, uint32_t baud) {
 	if (!sercom_check(sercom)) return false;
 	
 	float baudval = (float)F_CPU / (2 * baud) - 1;
-	sercom->SPI.BAUD.reg = (uint8_t)baudval;
+	sercom->SPIM.SERCOM_BAUD = (uint8_t)baudval;
 	return true;
 }
 
-uint8_t spi_command(Sercom* sercom, uint8_t data) {
+uint8_t spi_command(sercom_registers_t* sercom, uint8_t data) {
 	// wait until ready to send
-	while (!sercom->SPI.INTFLAG.bit.DRE);
-	sercom->SPI.DATA.reg = data;
+	while (!(sercom->SPIM.SERCOM_INTFLAG & SERCOM_SPIM_INTFLAG_DRE_Msk));
+	sercom->SPIM.SERCOM_DATA = data;
 	// wait until done
-	while (!sercom->SPI.INTFLAG.bit.TXC);
+	while (!(sercom->SPIM.SERCOM_INTFLAG & SERCOM_SPIM_INTFLAG_TXC_Msk));
 	// read buffer
-	return sercom->SPI.DATA.reg;
+	return sercom->SPIM.SERCOM_DATA;
 }
 
-void spi_flush(Sercom* sercom) {
+void spi_flush(sercom_registers_t* sercom) {
 	// while there is unread data touch the data register
-	while (sercom->SPI.INTFLAG.bit.RXC) sercom->SPI.DATA.reg;
+	while (sercom->SPIM.SERCOM_INTFLAG & SERCOM_SPIM_INTFLAG_RXC_Msk) sercom->SPIM.SERCOM_DATA;
 }

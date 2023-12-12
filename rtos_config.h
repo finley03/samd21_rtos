@@ -15,11 +15,11 @@
 #define MAINFUNC main
 
 // ram allocated to the OS
-// remember any callbacks must fit in this space
-#define RTOS_RAM_ALLOC 0x400
+// remember any callbacks and interrupts must fit in this space
+#define RTOS_STACK_ALLOC 0x300
 
 // ram allocated to the main function
-#define MAIN_RAM_ALLOC 0x400
+#define MAIN_STACK_ALLOC 0x400
 
 // enable preemptive multitasking
 #define RTOS_PREEMPT
@@ -34,12 +34,12 @@
 
 // Headers to provide information for this file
 
-#include "samd21.h"
+#include <sam.h>
 
 //----------PORT DEFINITIONS----------//
 
-#define DEBUG_LED_PORT PORT_PORTA
-#define DEBUG_LED_MASK PORT_PA28
+#define DEBUG_LED_PORT PORT_PORTB
+#define DEBUG_LED_MASK PORT_PB22
 
 //----------DRIVERS----------//
 
@@ -49,13 +49,13 @@
 // required for the OS to be able to compile and run
 
 // time driver used for delay functions
-#define TIME_DRIVER "time.h"
+#define TIME_DRIVER "Drivers/time.h"
 
 // OPTIONAL DRIVERS
 // other drivers the OS will use if they are defined
 
 // port driver will be used for default 
-#define PORT_DRIVER "port.h"
+#define PORT_DRIVER "Drivers/port.h"
 
 // OTHER DRIVERS
 // for programs or other functionality
@@ -128,16 +128,16 @@
 //---led block---// all must be defined
 
 // void led_init()
-#define led_init() port_set_output(PORT_PORTA, DEBUG_LED_MASK)
+#define led_init() port_set_output(DEBUG_LED_PORT, DEBUG_LED_MASK)
 
 // void led_on()
-#define led_on() port_set(PORT_PORTA, DEBUG_LED_MASK)
+#define led_on() port_set(DEBUG_LED_PORT, DEBUG_LED_MASK)
 
 // void led_off()
-#define led_off() port_clear(PORT_PORTA, DEBUG_LED_MASK)
+#define led_off() port_clear(DEBUG_LED_PORT, DEBUG_LED_MASK)
 
 // void led_toggle()
-#define led_toggle() port_toggle(PORT_PORTA, DEBUG_LED_MASK)
+#define led_toggle() port_toggle(DEBUG_LED_PORT, DEBUG_LED_MASK)
 
 //---end block---//
 

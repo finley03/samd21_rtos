@@ -1,14 +1,14 @@
 #ifndef DMA_H
 #define DMA_H
 
-#define DMA_CHANNELS 2
+#define DMA_CHANNELS 10
 
 #ifndef DMA_CHANNELS
 #error Macro "DMA_CHANNELS" must be defined to a value between 1 and 12
 #endif
 
 #include <stdbool.h>
-#include "samd21.h"
+#include <sam.h>
 
 typedef struct __attribute__((aligned(16))) {
 	union {
@@ -31,10 +31,18 @@ typedef struct __attribute__((aligned(16))) {
 	uint32_t SRCADDR;
 	uint32_t DSTADDR;
 	uint32_t DESCADDR;
-} DMA_DESCRIPTOR_Type;
+} DMA_Descriptor_Type;
 
-DMA_DESCRIPTOR_Type dma_descriptor[DMA_CHANNELS] __attribute__ ((aligned (8)));
-DMA_DESCRIPTOR_Type dma_descriptor_writeback[DMA_CHANNELS] __attribute__ ((aligned (8)));
+typedef struct __attribute__((packed)) {
+	uint8_t txchannel;
+	uint8_t rxchannel;
+	uint8_t rxtrig;
+	uint8_t txtrig;
+	uint8_t priority;
+} DMA_Descriptor;
+
+extern DMA_Descriptor_Type dma_descriptor[DMA_CHANNELS] __attribute__ ((aligned (8)));
+extern DMA_Descriptor_Type dma_descriptor_writeback[DMA_CHANNELS] __attribute__ ((aligned (8)));
 
 bool dma_set_channel(uint8_t channel);
 void dma_init();
@@ -44,7 +52,7 @@ void dma_init();
 #define DMA_BEATSIZE_WORD DMAC_BTCTRL_BEATSIZE_WORD_Val
 #define DMA_NEXTDESCRIPTOR_NONE 0
 
-bool dma_create_descriptor(DMA_DESCRIPTOR_Type* descriptor, bool incsource, bool incdest,
+bool dma_create_descriptor(DMA_Descriptor_Type* descriptor, bool incsource, bool incdest,
 	uint8_t beatsize, uint16_t count, void* src, void* dst, void* nextdescriptor);
 	
 #define DMA_TRIGACT_BLOCK DMAC_CHCTRLB_TRIGACT_BLOCK_Val

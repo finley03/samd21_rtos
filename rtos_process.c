@@ -3,12 +3,15 @@
 
 extern uint32_t _estack;
 #define rtos_stack_base ((uint32_t)(&_estack))
+static uint32_t rtos_stack_pointer;
 
 Process* process_queue[RTOS_MAX_PROCESS_COUNT];
 int process_queue_head;
 int process_queue_tail;
 int process_count;
 Process* current_process;
+
+//uint32_t process_pc;
 
 
 void init_process(Process* process, void (*procFunction)(void), uint32_t stack_position, uint32_t stack_size) {
@@ -49,16 +52,25 @@ void switch_process(Process* process) {
 	// the preemption routines will set it to running
 	process->status = Process_State_Done;
 	
-	// save stack pointer
-	rtos_stack_pointer = stack_pointer;
+	// // save stack pointer
+	// // rtos_stack_pointer = stack_pointer;
+	// // save stack pointer in PSP, even though PSP isn't used
+	// __set_PSP(stack_pointer);
 	
-	// set stack pointer to process stack pointer
-	stack_pointer = process->stack_pointer;
+	// // USE_PSP();
+	
+	// // set stack pointer to process stack pointer
+	// stack_pointer = process->stack_pointer;
+	// // __set_PSP(process->stack_pointer);
+
+	__set_PSP(process->stack_pointer);
+	USE_PSP();
 	
 	__enable_irq();
 	
 	// jump to process
 	((void (*)(void))(process->program_counter + 1))();
+	//((void (*)(void))(process_pc + 1))();
 	
 	
 	// invalidate all registers
@@ -66,8 +78,12 @@ void switch_process(Process* process) {
 	
 	__disable_irq();
 	
-	// restore stack pointer
-	stack_pointer = rtos_stack_pointer;
+	// // restore stack pointer
+	// //USE_MSP();
+	// // stack_pointer = rtos_stack_pointer;
+	// stack_pointer = __get_PSP();
+
+	USE_MSP();
 	
 	#ifdef RTOS_PREEMPT
 	if (process->enable_preempt) {	
@@ -76,6 +92,11 @@ void switch_process(Process* process) {
 	#endif
 	
 	__enable_irq();
+
+	
+	
+	// PORT_REGS->GROUP[DEBUG_LED_PORT].PORT_DIRSET = DEBUG_LED_MASK;
+	// PORT_REGS->GROUP[DEBUG_LED_PORT].PORT_OUTSET = DEBUG_LED_MASK;
 }
 
 
@@ -224,6 +245,10 @@ Process* next_process() {
 
 
 __attribute__((optimize("-Og"))) void yield_process(int process_status) {
+	// throw error if program tries to yield in an interrupt
+	// i.e check the stack is the PSP (control is 2)
+	if (__get_CONTROL() == 0) SOS();
+
 	__disable_irq();
 	
 	// set status of process
@@ -257,44 +282,11 @@ __attribute__((optimize("-Og"))) void yield_process(int process_status) {
 	__enable_irq();
 }
 
-
-//void wait_until(void* variable, uint32_t value, Process_Wait_Until_Condition condition) {
-	//// set return deadline to now (as soon as possible)
-	//current_process->return_deadline = time_read_ticks();
-	//
-	//// indicate the process is now blocked
-	//current_process->status = Process_State_Blocked;
-	//
-	//// create structure to define when process resumes execution
-	//volatile Process_Wait_Until_Data data = {
-		//.variable = variable,
-		//.value = value,
-		//.condition = condition
-	//};
-	//
-	//// make internal data pointer point to structure
-	//current_process->internal_data = &data;
-	//
-	//// set stack pointer
-	//current_process->stack_pointer = stack_pointer;
-		//
-	//// set stack pointer to be above first address in stack (link register)
-	//stack_pointer = current_process->stack_base - 4;
-		//
-	//// read program counter
-	//uint32_t pc;
-	//READ_PROGRAM_COUNTER(pc);
-	//current_process->program_counter = pc + 4;
-		//
-	//// branch (return) to process caller
-	//POP_PROGRAM_COUNTER();
-		//
-	//// execution will resume here when control is returned by the OS
-	//DISCARD_REGISTERS;
-		//
-	//// set ended to true so OS will know if process ends
-	//current_process->status = Process_State_Done;
+//void yield_process(int process_status) {
+	//current_process->status = process_status;
+	//NVIC_SetPendingIRQ(TC4_IRQn);
 //}
+
 
 void wait_until(void* variable, uint32_t value, uint32_t mask, Process_Wait_Until_Condition condition) {
 	// set return deadline to now (as soon as possible)

@@ -2,9 +2,9 @@
 #define SERCOM_H
 
 #include <stdbool.h>
-#include "samd21.h"
+#include <sam.h>
 
-bool sercom_check(Sercom* sercom);
-bool sercom_init(Sercom* sercom);
+bool sercom_check(sercom_registers_t* sercom);
+bool sercom_init(sercom_registers_t* sercom);
 
 #endif

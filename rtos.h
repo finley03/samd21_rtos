@@ -8,4 +8,8 @@
 #include "rtos_preemption.h"
 #endif
 
+#define USER_STACK_BASE (RTOS_STACK_ALLOC+MAIN_STACK_ALLOC)
+
+void SOS();
+
 #endif

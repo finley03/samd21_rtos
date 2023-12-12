@@ -21,7 +21,7 @@
 typedef struct __attribute__((packed)) {
 	uint32_t pin;
 	uint8_t port;
-} PIN;
+} Pin;
 
 void port_set_output(uint8_t port, uint32_t pinmask);
 void port_set_input(uint8_t port, uint32_t pinmask);

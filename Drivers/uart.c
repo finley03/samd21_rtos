@@ -2,94 +2,62 @@
 #include "sercom.h"
 #include "time.h"
 
-bool uart_init(Sercom* sercom, uint32_t txpad, uint32_t rxpad, uint32_t baud) {
-	// init SERCOM peripheral
-	if (!sercom_init(sercom)) return false;
-	if (txpad != 0 && txpad != 2) return false;
-	if (rxpad > 3) return false;
-	if (txpad) txpad = 1;
-	
-	// init sercom usart
-	// set to LSB first, internal clock
-	sercom->USART.CTRLA.reg = SERCOM_USART_CTRLA_DORD | (rxpad << SERCOM_USART_CTRLA_RXPO_Pos) |
-	(txpad << SERCOM_USART_CTRLA_TXPO_Pos) | SERCOM_USART_CTRLA_MODE_USART_INT_CLK;
-	
-	// enable tx and rx
-	sercom->USART.CTRLB.reg = SERCOM_USART_CTRLB_RXEN | SERCOM_USART_CTRLB_TXEN;
-	
-	// wait for sync
-	while (sercom->USART.SYNCBUSY.bit.CTRLB);
-	
-	uart_set_baud(sercom, baud);
-	
-	// enable USART
-	sercom->USART.CTRLA.bit.ENABLE = 1;
-	
-	// wait for sync
-	while(sercom->USART.SYNCBUSY.bit.ENABLE);
-	
-	return true;
+bool uart_init(sercom_registers_t* sercom, uint8_t rxpo, uint8_t txpo, uint32_t baud) {
+    if (!sercom_init(sercom)) return false;
+
+    // configure CTRLA register
+    sercom->USART_INT.SERCOM_CTRLA = SERCOM_USART_INT_CTRLA_DORD(1) | SERCOM_USART_INT_CTRLA_CMODE_ASYNC |
+        SERCOM_USART_INT_CTRLA_FORM_USART_FRAME_NO_PARITY | SERCOM_USART_INT_CTRLA_RXPO(rxpo) |
+        SERCOM_USART_INT_CTRLA_TXPO(txpo) | SERCOM_USART_INT_CTRLA_MODE_USART_INT_CLK;
+
+    // configure CTRLB register
+    sercom->USART_INT.SERCOM_CTRLB = SERCOM_USART_INT_CTRLB_RXEN(1) | SERCOM_USART_INT_CTRLB_TXEN(1);
+
+    // wait for sync on CTRLB
+    while (sercom->USART_INT.SERCOM_SYNCBUSY & SERCOM_USART_INT_SYNCBUSY_CTRLB_Msk);
+
+    if (!uart_set_baud(sercom, baud)) return false;
+
+    // enable USART
+    sercom->USART_INT.SERCOM_CTRLA |= SERCOM_USART_INT_CTRLA_ENABLE(1);
+
+    // wait for sync
+    while (sercom->USART_INT.SERCOM_SYNCBUSY & SERCOM_USART_INT_SYNCBUSY_ENABLE_Msk);
+
+    return true;
 }
 
-bool uart_set_baud(Sercom* sercom, uint32_t baud) {
-	if (!sercom_check(sercom)) return false;
-	
-	float baudval = (1.0f - ((float)baud / F_CPU * 16)) * 65536;
-	sercom->USART.BAUD.reg = (uint16_t)baudval;
-	return true;
+bool uart_set_baud(sercom_registers_t* sercom, uint32_t baud) {
+    if (!sercom_check(sercom)) return false;
+    // check baud is in range
+    if (baud > 3E6) return false;
+
+    float baudval = 65536.0f * (1.0f - ((float)baud / F_CPU * 16));
+    sercom->USART_INT.SERCOM_BAUD = (uint16_t)baudval;
+    return true;
 }
 
-void uart_flush(Sercom* sercom) {
-	// while there is unread data touch the data register
-	while (sercom->USART.INTFLAG.bit.RXC) sercom->USART.DATA.reg;
+void uart_flush(sercom_registers_t* sercom) {
+    while (sercom->USART_INT.SERCOM_INTFLAG & SERCOM_USART_INT_INTFLAG_RXC_Msk) sercom->USART_INT.SERCOM_DATA;
 }
 
-void uart_send_byte(Sercom* sercom, uint8_t data) {
-	// wait until ready to send data
-	while (!sercom->USART.INTFLAG.bit.DRE);
-	sercom->USART.DATA.reg = data;
+void uart_send_buffer(sercom_registers_t* sercom, uint8_t* buffer, int count) {
+    for (int i = 0; i < count; ++i) {
+        while (!(sercom->USART_INT.SERCOM_INTFLAG & SERCOM_USART_INT_INTFLAG_DRE_Msk));
+        sercom->USART_INT.SERCOM_DATA = buffer[i];
+    }
 }
 
-void uart_stream(Sercom* sercom, uint8_t* address, uint32_t count) {
-	for (int i = 0; i < count; ++i) {
-		while (!sercom->USART.INTFLAG.bit.DRE);
-		sercom->USART.DATA.reg = address[i];
-	}
-}
+int uart_read_buffer(sercom_registers_t* sercom, uint8_t* buffer, int count, int wait_microseconds) {
+    int i;
+    for (i = 0; i < count; ++i) {
+        uint32_t current_time = read_timer_20ns();
+        // wait until data available
+        while (!(sercom->USART_INT.SERCOM_INTFLAG & SERCOM_USART_INT_INTFLAG_RXC_Msk)) {
+            if (read_timer_20ns() - current_time > wait_microseconds * TIMER_TICK_US_MULTIPLIER) return i;
+        }
 
-void uart_print(Sercom* sercom, char* address) {
-	while (*address != '\0') {
-		while (!sercom->USART.INTFLAG.bit.DRE);
-		sercom->USART.DATA.reg = *address;
-		++address;
-	}
-}
-
-bool uart_read_byte(Sercom* sercom, uint8_t* address, uint32_t timeout) {
-	uint32_t byte_start_time = read_timer_20ns();
-	// wait until data available
-	while (!sercom->USART.INTFLAG.bit.RXC) {
-		// check if connection has timed out
-		if (read_timer_20ns() - byte_start_time > timeout) return false;
-	}
-	*address = (uint8_t)(sercom->USART.DATA.reg);
-	return true;
-}
-
-bool uart_read(Sercom* sercom, uint8_t* address, uint32_t count, uint32_t timeout) {
-	for (int i = 0; i < count; ++i) {
-		uint32_t byte_start_time = read_timer_20ns();
-		// wait until data available
-		while (!sercom->USART.INTFLAG.bit.RXC) {
-			// check if connection has timed out
-			if (read_timer_20ns() - byte_start_time > timeout) return false;
-		}
-		address[i] = (uint8_t)(sercom->USART.DATA.reg);
-	}
-	return true;
-}
-
-bool uart_check_rx_data(Sercom* sercom) {
-	if (sercom->USART.INTFLAG.bit.RXC) return true;
-	else return false;
+        buffer[i] = (uint8_t)(sercom->USART_INT.SERCOM_DATA);
+    }
+    return i;
 }

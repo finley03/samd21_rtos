@@ -12,6 +12,7 @@
 #define FLOAT_MASK U32_MASK
 #define CHAR_MASK U8_MASK
 #define BOOL_MASK U8_MASK
+#define SIZE_T_MASK U32_MASK
 
 typedef enum {
 	Process_State_Ready,
@@ -149,11 +150,25 @@ void wait_until_callback(void* variable, uint32_t value, uint32_t mask, Process_
 // process will not block it, although it will have no function.
 #define wait_until_started(proc) wait_until(&((proc)->status), Process_State_Ready, U32_MASK, Process_Wait_Until_NotEqual);
 
+//----------wait_until_true : macro----------//
+// Function: Shorthand for the function wait_until.
+// Blocks the current thread until the given boolean variable is true
+// Thread safety: completely thread safe for any process. Even passing the current
+// process will not block it, although it will have no function.
+#define wait_until_true(pointer) wait_until(pointer, false, BOOL_MASK, Process_Wait_Until_NotEqual);
+
+//----------wait_until_false : macro----------//
+// Function: Shorthand for the function wait_until.
+// Blocks the current thread until the given boolean variable is false
+// Thread safety: completely thread safe for any process. Even passing the current
+// process will not block it, although it will have no function.
+#define wait_until_false(pointer) wait_until(pointer, false, BOOL_MASK, Process_Wait_Until_Equal);
+
 //----------current_process : variable----------//
 // Description: Pointer to the Process structure for the current process.
 // Should be used when trying to access the data pointer for the current
 // process. The rest should not be modified, and is not guaranteed to be
 // accurate while the current thread is executing.
-Process* current_process;
+extern Process* current_process;
 
 #endif

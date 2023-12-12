@@ -120,19 +120,21 @@
 #define READ_PROGRAM_COUNTER(pc) __asm("mov %0, pc" : "=r" (pc))
 //#define READ_LINI(pc) __asm("mov %0, pc" : "=r" (pc))
 #define POP_PROGRAM_COUNTER() __asm("pop {pc}")
+#define USE_MSP() __set_CONTROL(0);
+#define USE_PSP() __set_CONTROL(2);
 	
 #define rtos_preemption_handler TC4_Handler
 
 
-const int time_ticks_s_mult;
-const int time_ticks_ms_mult;
-const int time_ticks_us_mult;
+extern const int time_ticks_s_mult;
+extern const int time_ticks_ms_mult;
+extern const int time_ticks_us_mult;
 
 // register access
 volatile register unsigned stack_pointer __asm("sp");
 volatile register unsigned link_register __asm("lr");
 
-uint32_t rtos_stack_pointer;
+// extern uint32_t rtos_stack_pointer;
 
 //void dummy_function();
 

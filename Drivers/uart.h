@@ -1,20 +1,15 @@
 #ifndef UART_H
-#define UART_H
+#define UART_C
 
 #include <stdbool.h>
-#include "samd21.h"
+#include <sam.h>
 
 // the given SERCOM is validated
-// NOTE only 0 and 2 are valid for txpad, 0 to 3 are valid for rxpad
-bool uart_init(Sercom* sercom, uint32_t txpad, uint32_t rxpad, uint32_t baud);
-bool uart_set_baud(Sercom* sercom, uint32_t baud);
+bool uart_init(sercom_registers_t* sercom, uint8_t rxpo, uint8_t txpo, uint32_t baud);
+bool uart_set_baud(sercom_registers_t* sercom, uint32_t baud);
 // for these the SERCOM is not validated
-void uart_flush(Sercom* sercom);
-void uart_send_byte(Sercom* sercom, uint8_t data);
-void uart_stream(Sercom* sercom, uint8_t* address, uint32_t count);
-void uart_print(Sercom* sercom, char* address);
-bool uart_read_byte(Sercom* sercom, uint8_t* address, uint32_t timeout);
-bool uart_read(Sercom* sercom, uint8_t* address, uint32_t count, uint32_t timeout);
-bool uart_check_rx_data(Sercom* sercom);
+void uart_flush(sercom_registers_t* sercom);
+void uart_send_buffer(sercom_registers_t* sercom, uint8_t* buffer, int count);
+int uart_read_buffer(sercom_registers_t* sercom, uint8_t* buffer, int count, int wait_microseconds); // returns number of bytes read
 
 #endif

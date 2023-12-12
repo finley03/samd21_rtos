@@ -91,7 +91,7 @@ USB_FullConfigurationDescriptor full_config = {
 		// self powered
 		.bmAttributes = USB_CONFIG_ATTR_SELFPOWERED | 0x80, // bit 7 must be set
 		// power
-		.bMaxPower = USB_CONFIG_POWER_MA(100)
+		.bMaxPower = USB_CONFIG_POWER_MA(0)
 	},
 	
 	.CDC_IAD = {
@@ -173,7 +173,7 @@ USB_FullConfigurationDescriptor full_config = {
 		.bDescriptorType = USB_DTYPE_Endpoint,
 		.bEndpointAddress = USB_EP_CDC_OUT,
 		.bmAttributes = (USB_EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-		.wMaxPacketSize = SERIAL_BUFFER_SIZE,
+		.wMaxPacketSize = USB_SERIAL_BUFFER_SIZE,
 		.bInterval = 0x05
 	},
 	
@@ -182,7 +182,7 @@ USB_FullConfigurationDescriptor full_config = {
 		.bDescriptorType = USB_DTYPE_Endpoint,
 		.bEndpointAddress = USB_EP_CDC_IN,
 		.bmAttributes = (USB_EP_TYPE_BULK | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
-		.wMaxPacketSize = SERIAL_BUFFER_SIZE,
+		.wMaxPacketSize = USB_SERIAL_BUFFER_SIZE,
 		.bInterval = 0x05
 	}
 };
